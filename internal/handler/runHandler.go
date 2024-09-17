@@ -95,7 +95,9 @@ func (r *RunHandler) Run(ctx context.Context) error {
 			return
 		}
 
-		err = r.TelegramAPI.SendMessage(ctx, personalID, dishes.ToString())
+		message := fmt.Sprintf("Good afternoon! Here are the dishes for today:\n\n%s", dishes.ToString())
+
+		err = r.TelegramAPI.SendMessage(ctx, personalID, message)
 		if err != nil {
 			log.Error("Failed to send message", "cause", err)
 		}
