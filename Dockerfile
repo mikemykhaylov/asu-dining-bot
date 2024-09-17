@@ -18,7 +18,12 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
   go build -o /build/myapp
 
 # Step 2: Create a smaller image and copy the binary
-FROM scratch
+FROM alpine:3.20
+
+# Install Chromium
+
+RUN apk add --no-cache chromium
+RUN addgroup -S myuser && adduser -S myuser -G myuser
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
@@ -26,5 +31,8 @@ WORKDIR /app
 # Copy the binary from the builder stage
 COPY --from=builder /build/myapp .
 
+# Use an unprivileged user
+USER myuser
+
 # Command to run the executable
-ENTRYPOINT ["./myapp", "run"]
+ENTRYPOINT ["./myapp", "run", "--docker"]

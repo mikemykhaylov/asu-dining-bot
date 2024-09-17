@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/input"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/mikemykhaylov/asu-dining-bot/internal/api"
 	"github.com/mikemykhaylov/asu-dining-bot/internal/config"
 	"github.com/mikemykhaylov/asu-dining-bot/internal/logger"
@@ -64,7 +65,14 @@ func (r *RunHandler) Run(ctx context.Context) error {
 
 	personalID := viper.GetInt64(config.PersonalIDKey)
 
-	page := rod.New().MustConnect().MustPage(asuDiningWebsiteURL)
+	var page *rod.Page
+	if viper.GetBool(config.DockerKey) {
+		u := launcher.New().Bin("/usr/bin/chromium-browser").Headless(true).MustLaunch()
+		page = rod.New().ControlURL(u).MustConnect().MustPage(asuDiningWebsiteURL)
+	} else {
+		page = rod.New().MustConnect().MustPage(asuDiningWebsiteURL)
+	}
+
 	router := page.HijackRequests()
 	defer router.MustStop()
 

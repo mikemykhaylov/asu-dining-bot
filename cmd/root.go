@@ -64,6 +64,13 @@ func init() {
 	}
 	viper.SetDefault(config.PersonalIDKey, api.TelegramPublicPersonalID)
 
+	// bool flag for running in docker
+	serveCmd.Flags().BoolP("docker", "", false, "Set to true when running in Docker. Sets chromium to /usr/bin/chromium-browser")
+	if err := viper.BindPFlag(config.DockerKey, serveCmd.Flags().Lookup("docker")); err != nil {
+		panic(err)
+	}
+	viper.SetDefault(config.DockerKey, false)
+
 	rootCmd.AddCommand(serveCmd)
 }
 
