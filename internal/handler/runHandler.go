@@ -73,6 +73,8 @@ func (r *RunHandler) Run(ctx context.Context) error {
 		page = rod.New().MustConnect().MustPage(asuDiningWebsiteURL)
 	}
 
+	log.Info("Connected to page", "url", asuDiningWebsiteURL)
+
 	router := page.HijackRequests()
 	defer router.MustStop()
 
