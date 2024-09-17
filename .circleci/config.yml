@@ -1,0 +1,131 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/configuration-reference
+---
+version: 2.1
+
+executors:
+  gcp:
+    docker:
+      - image: cimg/gcp:2024.03
+    resource_class: medium
+
+commands:
+  authenticate-gcp:
+    steps:
+      - run:
+          name: Create auth configuration files
+          command: |
+            GCP_SERVICE_ACCOUNT_EMAIL="${GCP_SERVICE_ACCOUNT_ID}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+            GCP_OIDC_AUDIENCE="projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${GCP_WORKLOAD_IDENTITY_POOL_ID}/providers/${GCP_OIDC_PROVIDER_ID}"
+
+            mkdir -p ~/.config/gcloud
+            echo "${CIRCLE_OIDC_TOKEN}" > $HOME/.config/gcloud/oidc_access_token
+
+            gcloud iam workload-identity-pools create-cred-config \
+              "${GCP_OIDC_AUDIENCE}" \
+              --service-account="${GCP_SERVICE_ACCOUNT_EMAIL}" \
+              --output-file="$HOME/.config/gcloud/application_default_credentials.json" \
+              --credential-source-file="$HOME/.config/gcloud/oidc_access_token" \
+              --credential-source-type=text
+      - run:
+          name: Show the files before auth
+          command: |
+            cat $HOME/.config/gcloud/application_default_credentials.json
+            cat $HOME/.config/gcloud/oidc_access_token
+      - run:
+          name: Try authenticating with creds
+          command: |
+            gcloud auth login \
+              --verbosity debug \
+              --cred-file "$HOME/.config/gcloud/application_default_credentials.json"
+      - run:
+          name: Set GCP project
+          command: gcloud config set project "$GCP_PROJECT_ID"
+  deploy-service:
+    parameters:
+      cloud-run-instance:
+        type: string
+        default: ${CIRCLE_PROJECT_REPONAME}
+    steps:
+      - run:
+          name: Check if Cloud Run service exists
+          command: |
+            gcloud run jobs describe \
+              <<parameters.cloud-run-instance>> \
+              --region="${GCP_AR_REGION}" > /dev/null
+            if [ $? -eq 0 ]; then
+              echo "Cloud Run job <<parameters.cloud-run-instance>> exists"
+            else
+              echo "Cloud Run job <<parameters.cloud-run-instance>> does not exist"
+              circleci-agent step halt
+            fi
+      - run:
+          name: Update the Cloud Run with new image
+          command: |
+            gcloud run jobs update \
+              <<parameters.cloud-run-instance>> \
+              --image="${GCP_AR_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_AR_REPO}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1:0:7}" \
+              --region="${GCP_AR_REGION}"
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/configuration-reference/#jobs
+jobs:
+  build:
+    executor: gcp
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true # DLC will explicitly cache layers here and try to avoid rebuilding.
+      - authenticate-gcp
+      - run:
+          name: Set up Docker auth
+          command: gcloud auth configure-docker "${GCP_AR_REGION}-docker.pkg.dev"
+      - run:
+          name: "Create Docker Buildx builder"
+          command: |
+            docker buildx create \
+              --name container \
+              --driver=docker-container \
+              --use --bootstrap
+      - run:
+          name: "Build Docker builder image"
+          command: |
+            docker buildx build \
+              -t ${CIRCLE_PROJECT_REPONAME}:builder \
+              --load --target builder .
+      - run:
+          name: "Build and push Docker runtime image"
+          command: |
+            docker buildx build \
+            -t "${GCP_AR_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_AR_REPO}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1:0:7}" \
+              --push  .
+  deploy-prod:
+    executor: gcp
+    steps:
+      - authenticate-gcp
+      - deploy-service
+  deploy-staging:
+    executor: gcp
+    steps:
+      - authenticate-gcp
+      - deploy-service:
+          cloud-run-instance: "${CIRCLE_PROJECT_REPONAME}-staging"
+
+# Orchestrate jobs using workflows
+# See: https://circleci.com/docs/configuration-reference/#workflows
+workflows:
+  build-deploy:
+    jobs:
+      - build
+      - deploy-prod:
+          requires:
+            - build
+          filters:
+            branches:
+              only: /main/
+      - deploy-staging:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /main/
