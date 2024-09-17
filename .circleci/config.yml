@@ -50,10 +50,7 @@ commands:
       - run:
           name: Check if Cloud Run service exists
           command: |
-            gcloud run jobs describe \
-              <<parameters.cloud-run-instance>> \
-              --region="${GCP_AR_REGION}" > /dev/null
-            if [ $? -eq 0 ]; then
+            if gcloud run jobs describe <<parameters.cloud-run-instance>> --region="${GCP_AR_REGION}" > /dev/null; then
               echo "Cloud Run job <<parameters.cloud-run-instance>> exists"
             else
               echo "Cloud Run job <<parameters.cloud-run-instance>> does not exist"
