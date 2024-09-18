@@ -1,8 +1,11 @@
 package api
 
+type StationName string
+
 var (
-	HomeStation        string = "Home Zone 1"
-	TrueBalanceStation string = "True Balance"
+	HomeStationName        StationName = "Home Zone 1"
+	TrueBalanceStationName StationName = "True Balance"
+	SoupStationName        StationName = "Soup Station"
 )
 
 type Response struct {
@@ -36,4 +39,9 @@ type MenuStation struct {
 	PeriodID  string `json:"PeriodId"`
 	StationID string `json:"StationId"`
 	Name      string `json:"Name"`
+}
+
+type Dish struct {
+	Name     string
+	Calories string
 }

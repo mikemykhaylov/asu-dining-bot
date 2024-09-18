@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"sync"
 
 	"github.com/go-rod/rod"
@@ -26,23 +27,6 @@ var (
 	mealInput           string = "#aria-meal-input"
 	doneButton          string = ".Done"
 )
-
-type Dishes struct {
-	HomeZone    []string
-	TrueBalance []string
-}
-
-func (d *Dishes) ToString() string {
-	out := "<b>Home Zone:</b>\n"
-	for _, dish := range d.HomeZone {
-		out += fmt.Sprintf("— %s\n", dish)
-	}
-	out += "\n<b>True Balance:</b>\n"
-	for _, dish := range d.TrueBalance {
-		out += fmt.Sprintf("— %s\n", dish)
-	}
-	return out
-}
 
 type RunHandler struct {
 	TelegramAPI *api.TelegramAPI
@@ -95,7 +79,7 @@ func (r *RunHandler) Run(ctx context.Context) error {
 			return
 		}
 
-		message := fmt.Sprintf("Good afternoon! Here are the dishes for today:\n\n%s", dishes.ToString())
+		message := fmt.Sprintf("Good afternoon! Here are the dishes for today:\n\n%s", dishes)
 
 		err = r.TelegramAPI.SendMessage(ctx, personalID, message)
 		if err != nil {
@@ -138,13 +122,13 @@ func (r *RunHandler) Run(ctx context.Context) error {
 	return nil
 }
 
-func (r *RunHandler) ParseMenu(ctx context.Context, body string) (*Dishes, error) {
+func (r *RunHandler) ParseMenu(ctx context.Context, body string) (string, error) {
 	log := logger.FromContext(ctx)
 
 	var response api.Response
 	if err := json.Unmarshal([]byte(body), &response); err != nil {
 		log.Error("Failed to unmarshal response", "cause", err)
-		return nil, err
+		return "", err
 	}
 
 	// Get period ID for selected period
@@ -158,40 +142,55 @@ func (r *RunHandler) ParseMenu(ctx context.Context, body string) (*Dishes, error
 
 	log.Info("Period ID", "periodID", periodID)
 
+	stations := []api.StationName{
+		api.HomeStationName,
+		api.TrueBalanceStationName,
+		api.SoupStationName,
+	}
+
 	// Get station IDs for Home Zone and True Balance
-	var homeStationID, trueBalanceStationID string
+	stationNames := make(map[string]api.StationName)
 	for _, station := range response.Menu.MenuStations {
 		if station.PeriodID != periodID {
 			continue
 		}
 
-		switch station.Name {
-		case api.HomeStation:
-			homeStationID = station.StationID
-		case api.TrueBalanceStation:
-			trueBalanceStationID = station.StationID
+		stationName := api.StationName(station.Name)
+
+		if slices.Contains(stations, stationName) {
+			stationNames[station.StationID] = stationName
 		}
 	}
 
-	log.Info("Station IDs", "homeStationID", homeStationID, "trueBalanceStationID", trueBalanceStationID)
-
-	// Get products for Home Zone and True Balance
-	var homeZoneDishes, trueBalanceDishes []string
+	// Get dishes for Stations
+	dishes := make(map[api.StationName][]api.Dish)
 	for _, product := range response.Menu.MenuProducts {
 		if product.PeriodID != periodID {
 			continue
 		}
-		switch product.StationID {
-		case homeStationID:
-			homeZoneDishes = append(homeZoneDishes, product.Product.MarketingName)
-		case trueBalanceStationID:
-			trueBalanceDishes = append(trueBalanceDishes, product.Product.MarketingName)
-		}
 
+		if stationName, ok := stationNames[product.StationID]; ok {
+			dish := api.Dish{
+				Name:     product.Product.MarketingName,
+				Calories: product.Product.Calories,
+			}
+
+			dishes[stationName] = append(dishes[stationName], dish)
+		}
 	}
 
-	return &Dishes{
-		HomeZone:    homeZoneDishes,
-		TrueBalance: trueBalanceDishes,
-	}, nil
+	var result string
+
+	for _, station := range stations {
+		result += fmt.Sprintf("<b>%s</b>\n", station)
+		for _, dish := range dishes[station] {
+			result += fmt.Sprintf("— %s (%s cal)\n", dish.Name, dish.Calories)
+		}
+		result += "\n"
+	}
+	if len(result) > 0 {
+		result = result[:len(result)-1]
+	}
+
+	return result, nil
 }
