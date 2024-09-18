@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/go-rod/rod"
@@ -170,8 +172,16 @@ func (r *RunHandler) ParseMenu(ctx context.Context, body string) (string, error)
 		}
 
 		if stationName, ok := stationNames[product.StationID]; ok {
+			dishName := product.Product.MarketingName
+			// if there is a ( ... ) in the dish name, remove it
+			parens := regexp.MustCompile(`\(.*\)`)
+			dishName = parens.ReplaceAllString(dishName, "")
+
+			// trim any leading or trailing whitespace
+			dishName = strings.TrimSpace(dishName)
+
 			dish := api.Dish{
-				Name:     product.Product.MarketingName,
+				Name:     dishName,
 				Calories: product.Product.Calories,
 			}
 
