@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -192,10 +193,22 @@ func (r *RunHandler) ParseMenu(ctx context.Context, body string) (string, error)
 	var result string
 
 	for _, station := range stations {
-		result += fmt.Sprintf("<b>%s</b>\n", station)
+		totalCalories := 0
+		menuString := ""
 		for _, dish := range dishes[station] {
-			result += fmt.Sprintf("— %s (%s cal)\n", dish.Name, dish.Calories)
+			menuString += fmt.Sprintf("— %s (%s cal)\n", dish.Name, dish.Calories)
+			cal, err := strconv.Atoi(dish.Calories)
+			if err == nil {
+				totalCalories += cal
+			}
 		}
+
+		result += fmt.Sprintf("<b>%s", station)
+		if totalCalories > 0 && station != api.SoupStationName {
+			result += fmt.Sprintf(" (%d cal)", totalCalories)
+		}
+		result += "</b>\n"
+		result += menuString
 		result += "\n"
 	}
 	if len(result) > 0 {
