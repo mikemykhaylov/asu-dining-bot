@@ -54,7 +54,7 @@ func (r *RunHandler) Run(ctx context.Context) error {
 
 	var page *rod.Page
 	if viper.GetBool(config.DockerKey) {
-		u := launcher.New().Bin("/usr/bin/chromium-browser").Headless(true).MustLaunch()
+		u := launcher.New().Bin("/usr/bin/chromium-browser").Headless(true).Set("no-sandbox", "").MustLaunch()
 		page = rod.New().ControlURL(u).MustConnect().MustPage(asuDiningWebsiteURL)
 	} else {
 		page = rod.New().MustConnect().MustPage(asuDiningWebsiteURL)
