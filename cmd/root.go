@@ -59,7 +59,7 @@ func init() {
 	if err := viper.BindPFlag(config.PersonalIDKey, serveCmd.Flags().Lookup("personalID")); err != nil {
 		panic(err)
 	}
-	if err := viper.BindEnv(config.PersonalIDKey, "PERSONAL_ID"); err != nil {
+	if err := viper.BindEnv(config.PersonalIDKey, "TELEGRAM_PERSONAL_ID"); err != nil {
 		panic(err)
 	}
 	viper.SetDefault(config.PersonalIDKey, api.TelegramPublicPersonalID)
