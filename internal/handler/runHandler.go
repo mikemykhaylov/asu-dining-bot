@@ -52,14 +52,23 @@ func (r *RunHandler) Run(ctx context.Context) error {
 
 	personalID := viper.GetInt64(config.PersonalIDKey)
 
-	var page *rod.Page
-	if viper.GetBool(config.DockerKey) {
-		u := launcher.New().Bin("/usr/bin/chromium-browser").Headless(true).Set("no-sandbox", "").MustLaunch()
-		page = rod.New().ControlURL(u).MustConnect().MustPage(asuDiningWebsiteURL)
-	} else {
-		page = rod.New().MustConnect().MustPage(asuDiningWebsiteURL)
+	var browser *rod.Browser
+	browserMode := viper.GetString(config.BrowserModeKey)
+
+	switch config.BrowserMode(browserMode) {
+	case config.Docker:
+		u := launcher.New().Bin("/usr/bin/chromium-browser").MustLaunch()
+		browser = rod.New().ControlURL(u).MustConnect()
+	case config.Remote:
+		l := launcher.MustNewManaged("")
+		browser = rod.New().Client(l.MustClient()).MustConnect()
+	case config.Host:
+		browser = rod.New().MustConnect()
+	default:
+		return fmt.Errorf("invalid browser mode: %s", browserMode)
 	}
 
+	page := browser.MustPage(asuDiningWebsiteURL)
 	log.Info("Connected to page", "url", asuDiningWebsiteURL)
 
 	router := page.HijackRequests()

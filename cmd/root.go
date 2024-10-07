@@ -39,6 +39,12 @@ var (
 				return errors.New("telegram personal ID is required")
 			}
 
+			mode := viper.GetString(config.BrowserModeKey)
+			if mode != string(config.Host) && mode != string(config.Docker) && mode != string(config.Remote) {
+				log.Error("Invalid browser mode", "mode", mode)
+				return errors.New("invalid browser mode")
+			}
+
 			runHandler := handler.NewRunHandler()
 
 			return runHandler.Run(ctx)
@@ -64,12 +70,11 @@ func init() {
 	}
 	viper.SetDefault(config.PersonalIDKey, api.TelegramPublicPersonalID)
 
-	// bool flag for running in docker
-	serveCmd.Flags().BoolP("docker", "", false, "Set to true when running in Docker. Sets chromium to /usr/bin/chromium-browser")
-	if err := viper.BindPFlag(config.DockerKey, serveCmd.Flags().Lookup("docker")); err != nil {
+	serveCmd.Flags().StringP("mode", "m", "host", "Browser mode: host, docker, or remote")
+	if err := viper.BindPFlag(config.BrowserModeKey, serveCmd.Flags().Lookup("mode")); err != nil {
 		panic(err)
 	}
-	viper.SetDefault(config.DockerKey, false)
+	viper.SetDefault(config.BrowserModeKey, string(config.Host))
 
 	rootCmd.AddCommand(serveCmd)
 }

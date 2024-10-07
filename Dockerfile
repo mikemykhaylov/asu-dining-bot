@@ -35,4 +35,4 @@ COPY --from=builder /build/myapp .
 USER myuser
 
 # Command to run the executable
-ENTRYPOINT ["./myapp", "run", "--docker"]
+ENTRYPOINT ["./myapp", "run", "-m", "docker"]
