@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/input"
@@ -68,7 +70,20 @@ func (r *RunHandler) Run(ctx context.Context) error {
 		return fmt.Errorf("invalid browser mode: %s", browserMode)
 	}
 
-	page := browser.MustPage(asuDiningWebsiteURL)
+	defer browser.MustClose()
+	page := browser.MustPage()
+
+	log.Info("Navigating to website")
+	err := rod.Try(func() {
+		page.Timeout(5 * time.Second).MustNavigate(asuDiningWebsiteURL)
+	})
+
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("timeout exceeded while navigating to website")
+	} else if err != nil {
+		return fmt.Errorf("failed to navigate to website: %w", err)
+	}
+
 	log.Info("Connected to page", "url", asuDiningWebsiteURL)
 
 	router := page.HijackRequests()
