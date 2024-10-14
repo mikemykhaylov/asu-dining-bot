@@ -70,11 +70,11 @@ func init() {
 	}
 	viper.SetDefault(config.PersonalIDKey, api.TelegramPublicPersonalID)
 
-	serveCmd.Flags().StringP("mode", "m", "host", "Browser mode: host, docker, or remote")
-	if err := viper.BindPFlag(config.BrowserModeKey, serveCmd.Flags().Lookup("mode")); err != nil {
+	serveCmd.Flags().StringP("browserMode", "", "host", "Browser mode: host, docker, or remote")
+	if err := viper.BindPFlag(config.BrowserModeKey, serveCmd.Flags().Lookup("browserMode")); err != nil {
 		panic(err)
 	}
-	if err := viper.BindEnv(config.BrowserModeKey, "MODE"); err != nil {
+	if err := viper.BindEnv(config.BrowserModeKey, "BROWSER_MODE"); err != nil {
 		panic(err)
 	}
 	viper.SetDefault(config.BrowserModeKey, string(config.Host))
