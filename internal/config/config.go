@@ -10,4 +10,9 @@ var (
 	TelegramBotTokenKey string = "token"
 	PersonalIDKey       string = "personalID"
 	BrowserModeKey      string = "browserMode"
+	ServerKey           string = "server"
 )
+
+type ServerConfig struct {
+	Port uint16
+}

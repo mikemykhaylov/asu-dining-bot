@@ -9,6 +9,7 @@ import (
 	"github.com/mikemykhaylov/asu-dining-bot/internal/config"
 	"github.com/mikemykhaylov/asu-dining-bot/internal/handler"
 	"github.com/mikemykhaylov/asu-dining-bot/internal/logger"
+	"github.com/mikemykhaylov/asu-dining-bot/internal/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -43,6 +44,21 @@ var (
 			if mode != string(config.Host) && mode != string(config.Docker) && mode != string(config.Remote) {
 				log.Error("Invalid browser mode", "mode", mode)
 				return errors.New("invalid browser mode")
+			}
+
+			port := viper.GetUint16("port")
+			runAsServer := viper.GetBool(config.ServerKey)
+			if runAsServer {
+				log.Info("Running in server mode", "port", port)
+				config := &config.ServerConfig{
+					Port: port,
+				}
+
+				err := server.NewServer(config)
+				if err != nil {
+					log.Error("Failed to run server", "cause", err)
+				}
+				return nil
 			}
 
 			runHandler := handler.NewRunHandler()
@@ -82,6 +98,24 @@ func init() {
 		panic(err)
 	}
 	viper.SetDefault(config.BrowserModeKey, string(config.Host))
+
+	serveCmd.Flags().BoolP("server", "", false, "Run as a server")
+	if err := viper.BindPFlag(config.ServerKey, serveCmd.Flags().Lookup("server")); err != nil {
+		panic(err)
+	}
+	if err := viper.BindEnv(config.ServerKey, "AS_SERVER"); err != nil {
+		panic(err)
+	}
+	viper.SetDefault(config.ServerKey, false)
+
+	serveCmd.Flags().Uint16P("port", "p", 8080, "Port to listen on")
+	if err := viper.BindPFlag("port", serveCmd.Flags().Lookup("port")); err != nil {
+		panic(err)
+	}
+	if err := viper.BindEnv("port", "PORT"); err != nil {
+		panic(err)
+	}
+	viper.SetDefault("port", 8080)
 
 	rootCmd.AddCommand(serveCmd)
 }
