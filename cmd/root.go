@@ -47,7 +47,11 @@ var (
 
 			runHandler := handler.NewRunHandler()
 
-			return runHandler.Run(ctx)
+			err := runHandler.Run(ctx)
+			if err != nil {
+				log.Error("Failed to run handler", "cause", err)
+			}
+			return nil
 		},
 	}
 )
