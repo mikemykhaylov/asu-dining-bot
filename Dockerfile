@@ -34,5 +34,7 @@ COPY --from=builder /build/myapp .
 # Use an unprivileged user
 USER myuser
 
+ENV MODE=docker
+
 # Command to run the executable
-ENTRYPOINT ["./myapp", "run", "-m", "docker"]
+ENTRYPOINT ["./myapp", "run"]

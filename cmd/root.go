@@ -74,6 +74,9 @@ func init() {
 	if err := viper.BindPFlag(config.BrowserModeKey, serveCmd.Flags().Lookup("mode")); err != nil {
 		panic(err)
 	}
+	if err := viper.BindEnv(config.BrowserModeKey, "MODE"); err != nil {
+		panic(err)
+	}
 	viper.SetDefault(config.BrowserModeKey, string(config.Host))
 
 	rootCmd.AddCommand(serveCmd)
