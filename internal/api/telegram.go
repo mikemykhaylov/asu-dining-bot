@@ -29,7 +29,10 @@ func NewTelegramAPI(token string, httpClient *http.Client) *TelegramAPI {
 }
 
 func (t *TelegramAPI) SendMessage(ctx context.Context, chatID int64, text string) error {
-	requestURL, _ := url.Parse(fmt.Sprintf("%s/sendMessage", t.baseURL))
+	requestURL, err := url.Parse(fmt.Sprintf("%s/sendMessage", t.baseURL))
+	if err != nil {
+		return err
+	}
 	query := requestURL.Query()
 	query.Set("chat_id", fmt.Sprintf("%d", chatID))
 	query.Set("text", text)
