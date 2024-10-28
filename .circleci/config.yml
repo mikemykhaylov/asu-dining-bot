@@ -37,7 +37,7 @@ commands:
           command: |
             gcloud run services update \
               <<parameters.cloud-run-instance>> \
-              --image="${GCP_AR_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_AR_REPO}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1:0:7}" \
+              --image="${GCP_AR_REGION}-docker.pkg.dev/${GOOGLE_PROJECT_ID}/${GCP_AR_REPO}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1:0:7}" \
               --region="${GCP_AR_REGION}"
 
 # Define a job to be invoked later in a workflow.
@@ -70,7 +70,7 @@ jobs:
           name: "Build and push Docker runtime image"
           command: |
             docker buildx build \
-            -t "${GCP_AR_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_AR_REPO}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1:0:7}" \
+              -t "${GCP_AR_REGION}-docker.pkg.dev/${GOOGLE_PROJECT_ID}/${GCP_AR_REPO}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1:0:7}" \
               --push  .
   deploy-prod:
     executor: gcp
