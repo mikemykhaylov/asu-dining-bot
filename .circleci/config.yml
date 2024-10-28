@@ -16,7 +16,7 @@ commands:
   authenticate-gcp:
     steps:
       - gcp-cli/setup:
-          use-oidc: true
+          use_oidc: true
   deploy-service:
     parameters:
       cloud-run-instance:
