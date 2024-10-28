@@ -6,7 +6,7 @@ version: 2.1
 executors:
   gcp:
     docker:
-      - image: cimg/gcp:2024.03
+      - image: cimg/gcp:2024.08
     resource_class: medium
 
 orbs:
@@ -17,6 +17,7 @@ commands:
     steps:
       - gcp-cli/setup:
           use_oidc: true
+          version: 488.0.0
   deploy-service:
     parameters:
       cloud-run-instance:
