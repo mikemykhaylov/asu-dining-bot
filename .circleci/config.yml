@@ -9,38 +9,14 @@ executors:
       - image: cimg/gcp:2024.03
     resource_class: medium
 
+orbs:
+  gcp-cli: circleci/gcp-cli@3.2.2
+
 commands:
   authenticate-gcp:
     steps:
-      - run:
-          name: Create auth configuration files
-          command: |
-            GCP_SERVICE_ACCOUNT_EMAIL="${GCP_SERVICE_ACCOUNT_ID}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
-            GCP_OIDC_AUDIENCE="projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${GCP_WORKLOAD_IDENTITY_POOL_ID}/providers/${GCP_OIDC_PROVIDER_ID}"
-
-            mkdir -p ~/.config/gcloud
-            echo "${CIRCLE_OIDC_TOKEN}" > $HOME/.config/gcloud/oidc_access_token
-
-            gcloud iam workload-identity-pools create-cred-config \
-              "${GCP_OIDC_AUDIENCE}" \
-              --service-account="${GCP_SERVICE_ACCOUNT_EMAIL}" \
-              --output-file="$HOME/.config/gcloud/application_default_credentials.json" \
-              --credential-source-file="$HOME/.config/gcloud/oidc_access_token" \
-              --credential-source-type=text
-      - run:
-          name: Show the files before auth
-          command: |
-            cat $HOME/.config/gcloud/application_default_credentials.json
-            cat $HOME/.config/gcloud/oidc_access_token
-      - run:
-          name: Try authenticating with creds
-          command: |
-            gcloud auth login \
-              --verbosity debug \
-              --cred-file "$HOME/.config/gcloud/application_default_credentials.json"
-      - run:
-          name: Set GCP project
-          command: gcloud config set project "$GCP_PROJECT_ID"
+      - gcp-cli/setup:
+          use-oidc: true
   deploy-service:
     parameters:
       cloud-run-instance:
