@@ -19,7 +19,9 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	// try up to 5 times to get the menu
 	for i := 0; i < 5; i++ {
 		err = runHandler.Run(ctx)
-		if err == nil {
+		if err != nil {
+			log.Error(fmt.Sprintf("failed to get the menu, attempt %d", i+1), "cause", err)
+		} else {
 			break
 		}
 	}
