@@ -218,9 +218,14 @@ func (r *RunHandler) ParseMenu(ctx context.Context, body string) (string, error)
 
 	for _, station := range stations {
 		totalCalories := 0
-		menuString := ""
+		dishString := ""
 		for _, dish := range dishes[station] {
-			menuString += fmt.Sprintf("— %s (%s cal)\n", dish.Name, dish.Calories)
+			dishString += fmt.Sprintf("— %s ", dish.Name)
+			if dish.Calories != "" {
+				dishString += fmt.Sprintf(" (%s cal)", dish.Calories)
+			}
+			dishString += "\n"
+
 			cal, err := strconv.Atoi(dish.Calories)
 			if err == nil {
 				totalCalories += cal
@@ -232,7 +237,7 @@ func (r *RunHandler) ParseMenu(ctx context.Context, body string) (string, error)
 			result += fmt.Sprintf(" (%d cal)", totalCalories)
 		}
 		result += "</b>\n"
-		result += menuString
+		result += dishString
 		result += "\n"
 	}
 	if len(result) > 0 {
